@@ -1,0 +1,10 @@
+.ccls-cache/
+.idea/
+cmake-build-Debug/
+cmake-build-Release/
+cmake-build-debug/
+cmake-build-release/
+compile_commands.json
+**.glb
+models/
+

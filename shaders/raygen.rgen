@@ -1,0 +1,149 @@
+#version 460
+#extension GL_EXT_ray_tracing : enable
+#extension GL_EXT_nonuniform_qualifier : enable
+
+#include "common.glsl"
+
+layout(binding = 0, rgba32f) uniform image2D image;
+layout(binding = 1)          uniform accelerationStructureEXT topLevelAS;
+layout(binding = 2) uniform Uniforms {
+    mat4 proj;
+    mat4 projInverse;
+    mat4 view;
+    mat4 viewInverse;
+    float time;
+    uint tick;
+};
+layout(binding = 7) uniform sampler2D skybox;
+
+
+
+layout(location = 0) rayPayloadEXT Payload {
+    bool hit;
+    bool inside;
+    float t;
+    vec3 surface_normal;
+    vec3 normal;
+    Material material;
+} payload;
+
+
+
+uint getSeed() {
+    return wang_hash(wang_hash(gl_LaunchIDEXT.x + gl_LaunchSizeEXT.x * gl_LaunchIDEXT.y) + 17 * tick + 101 * uint(time*10000));
+}
+
+void main() {
+    uint seed = getSeed();
+    const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(randf(seed), randf(seed));
+    const vec2 screenUV = (pixelCenter / vec2(gl_LaunchSizeEXT.xy)) * 2.0f - 1.0f;
+
+    vec3 ray_origin = (viewInverse * vec4(0,0,0,1)).xyz;
+    vec3 target = (projInverse * vec4(screenUV, 1, 1)).xyz;
+    vec3 ray_direction = normalize((viewInverse * vec4(target, 0)).xyz);
+
+    vec3 acc = vec3(0);
+    vec3 mask = vec3(1);
+
+    for(uint depth=0; depth < 640; depth++) {
+        const float tmin = 0.001f;
+        const float tmax = 10000.0f;
+        payload.hit = false;
+        traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0, ray_origin, tmin, ray_direction, tmax, 0);
+
+        if (payload.hit) {
+
+            if (tick == 0) {
+                acc = abs(payload.normal);
+                break;
+            }
+
+            float cFog = 0.001f;
+            float tFog = -log(1-randf(seed)) / cFog;
+
+            if (tFog < payload.t) {
+                if (randf(seed) < 0.2) {
+                    break;
+                }
+                float phi = randf(seed) * 2.0f * PI;
+                float theta = randf(seed) * PI;
+                ray_origin = ray_origin + tFog * ray_direction;
+                ray_direction = vec3(cos(phi) * sin(theta), cos(theta), sin(phi) * sin(theta));
+            } else if (randf(seed) > payload.material.diffuse_color.w) {
+                if (payload.inside) {
+                    mask *= exp(-payload.material.glass.rgb * payload.t);
+                }
+
+                // calculate the eta based on whether we are inside
+                const float n1 = payload.inside ? payload.material.glass.w : 1.0f;
+                const float n2 = payload.inside ? 1.0f : payload.material.glass.w;
+                const float eta = n1 / n2;
+
+                const float costi = dot(payload.normal, -ray_direction);
+                const float k = 1 - (eta* eta) * (1 - costi * costi);
+
+
+                float pReflect;
+                if (k < 0) {
+                    // Total internal reflection
+                    pReflect = 1;
+                } else {
+                    // fresnell equation for reflection contribution
+                    const float sinti = sqrt(max(0.0f, 1.0f - costi - costi));
+                    const float costt = sqrt(1.0f - eta * eta * sinti * sinti);
+                    const float spol = (n1 * costi - n2 * costt) / (n1 * costi + n2 * costt);
+                    const float ppol = (n1 * costt - n2 * costi) / (n1 * costt + n2 * costi);
+                    pReflect = 0.5f * (spol * spol + ppol * ppol);
+                }
+
+                vec3 refract_dir;
+                if (randf(seed) < pReflect) {
+                    refract_dir = reflect(ray_direction, payload.normal);
+                } else {
+                    refract_dir = normalize(eta * ray_direction + payload.normal * (eta * costi - sqrt(k)));
+                }
+
+                const vec3 noise_dir = SampleHemisphereCosine(refract_dir, randf(seed), randf(seed));
+                ray_origin = ray_origin + payload.t * ray_direction;
+                ray_direction = payload.material.roughness * noise_dir + (1-payload.material.roughness) * refract_dir;
+
+            } else {
+                mask *= payload.material.diffuse_color.xyz;
+                acc += mask * payload.material.emission.xyz;
+
+                const float russianP = clamp(max3(payload.material.diffuse_color.xyz), 0.1f, 0.9f);
+                if (randf(seed) < russianP) {
+                    mask /= russianP;
+                } else {
+                    break;
+                }
+
+                const vec3 noise_dir = SampleHemisphereCosine(payload.normal, randf(seed), randf(seed));
+                ray_origin = ray_origin + payload.t * ray_direction;
+                ray_direction = payload.material.roughness * noise_dir + (1-payload.material.roughness) * payload.normal;
+                if (dot(ray_direction, payload.surface_normal) <= 0) {
+                    break;
+                }
+            }
+        } 
+        else {
+            vec2 uv = vec2(atan(ray_direction.x, ray_direction.z)/(2 * PI), acos(ray_direction.y) / PI);
+            vec3 sky = vec3(12090) * (dot(ray_direction, normalize(vec3(0,1,0.0))) < 0.99 ? 0 : 1);
+
+            if (depth == 0) {
+                acc = sky;
+            } else {
+                acc += mask * sky;
+            }
+            break;
+        }
+
+    }
+
+    vec4 oldAcc = imageLoad(image, ivec2(gl_LaunchIDEXT.xy));
+    if (tick <= 1) {
+        oldAcc = vec4(0);
+    }
+
+    imageStore(image, ivec2(gl_LaunchIDEXT.xy), vec4(oldAcc.xyz + acc, oldAcc.w + 1.0f));
+}
