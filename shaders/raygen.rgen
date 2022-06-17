@@ -34,19 +34,21 @@ uint getSeed() {
 }
 
 void main() {
-    uint seed = getSeed();
-    const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(randf(seed), randf(seed));
+    g_seed = getSeed();
+    const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(randf(), randf());
     const vec2 screenUV = (pixelCenter / vec2(gl_LaunchSizeEXT.xy)) * 2.0f - 1.0f;
 
     vec3 ray_origin = (viewInverse * vec4(0,0,0,1)).xyz;
     vec3 target = (projInverse * vec4(screenUV, 1, 1)).xyz;
     vec3 ray_direction = normalize((viewInverse * vec4(target, 0)).xyz);
 
+    float wavelength = randf() * 300 + 400;
+
     vec3 acc = vec3(0);
-    vec3 mask = vec3(1);
+    vec3 mask = WavelengthToRGB(wavelength);
 
     for(uint depth=0; depth < 640; depth++) {
-        const float tmin = 0.001f;
+        const float tmin = 0.0001f;
         const float tmax = 10000.0f;
         payload.hit = false;
         traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0, ray_origin, tmin, ray_direction, tmax, 0);
@@ -58,25 +60,29 @@ void main() {
                 break;
             }
 
-            float cFog = 0.001f;
-            float tFog = -log(1-randf(seed)) / cFog;
+            float cFog = 0.0009f;
+            float tFog = -log(1-randf()) / cFog;
 
             if (tFog < payload.t) {
-                if (randf(seed) < 0.2) {
+                if (randf() < 0.2) {
                     break;
                 }
-                float phi = randf(seed) * 2.0f * PI;
-                float theta = randf(seed) * PI;
                 ray_origin = ray_origin + tFog * ray_direction;
-                ray_direction = vec3(cos(phi) * sin(theta), cos(theta), sin(phi) * sin(theta));
-            } else if (randf(seed) > payload.material.diffuse_color.w) {
+                const float uq = 1.0f;
+                ray_direction = normalize(uq * SampleSphere() + (1-uq) * ray_direction);
+            } else if (randf() > payload.material.diffuse_color.w) {
                 if (payload.inside) {
                     mask *= exp(-payload.material.glass.rgb * payload.t);
                 }
 
+                // refract index based on wavelength
+                const float A = 1.45f;
+                const float B = 35000.0f;
+                float refract_index = A + B / (wavelength * wavelength);
+
                 // calculate the eta based on whether we are inside
-                const float n1 = payload.inside ? payload.material.glass.w : 1.0f;
-                const float n2 = payload.inside ? 1.0f : payload.material.glass.w;
+                const float n1 = payload.inside ? refract_index : 1.0f;
+                const float n2 = payload.inside ? 1.0f : refract_index;
                 const float eta = n1 / n2;
 
                 const float costi = dot(payload.normal, -ray_direction);
@@ -97,30 +103,30 @@ void main() {
                 }
 
                 vec3 refract_dir;
-                if (randf(seed) < pReflect) {
+                if (randf() < pReflect) {
                     refract_dir = reflect(ray_direction, payload.normal);
                 } else {
                     refract_dir = normalize(eta * ray_direction + payload.normal * (eta * costi - sqrt(k)));
                 }
 
-                const vec3 noise_dir = SampleHemisphereCosine(refract_dir, randf(seed), randf(seed));
-                ray_origin = ray_origin + payload.t * ray_direction;
-                ray_direction = payload.material.roughness * noise_dir + (1-payload.material.roughness) * refract_dir;
+                const vec3 noise_dir = SampleHemisphereCosine(refract_dir);
+                ray_origin = ray_origin + (payload.t-EPS) * ray_direction - 2 * EPS * payload.surface_normal;
+                ray_direction = normalize(payload.material.roughness * noise_dir + (1-payload.material.roughness) * refract_dir);
 
             } else {
                 mask *= payload.material.diffuse_color.xyz;
                 acc += mask * payload.material.emission.xyz;
 
                 const float russianP = clamp(max3(payload.material.diffuse_color.xyz), 0.1f, 0.9f);
-                if (randf(seed) < russianP) {
+                if (randf() < russianP) {
                     mask /= russianP;
                 } else {
                     break;
                 }
 
-                const vec3 noise_dir = SampleHemisphereCosine(payload.normal, randf(seed), randf(seed));
-                ray_origin = ray_origin + payload.t * ray_direction;
-                ray_direction = payload.material.roughness * noise_dir + (1-payload.material.roughness) * payload.normal;
+                const vec3 noise_dir = SampleHemisphereCosine(payload.normal);
+                ray_origin = ray_origin + (payload.t-EPS) * ray_direction;
+                ray_direction = normalize(payload.material.roughness * noise_dir + (1-payload.material.roughness) * payload.normal);
                 if (dot(ray_direction, payload.surface_normal) <= 0) {
                     break;
                 }
@@ -128,7 +134,7 @@ void main() {
         } 
         else {
             vec2 uv = vec2(atan(ray_direction.x, ray_direction.z)/(2 * PI), acos(ray_direction.y) / PI);
-            vec3 sky = vec3(12090) * (dot(ray_direction, normalize(vec3(0,1,0.0))) < 0.99 ? 0 : 1);
+            vec3 sky = 200 * vec3(90, 90, 90) * pow(max(0, dot(ray_direction, vec3(0,0,-1))), 300);
 
             if (depth == 0) {
                 acc = sky;

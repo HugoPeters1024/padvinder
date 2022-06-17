@@ -56,12 +56,13 @@ int main(int argc, char** argv) {
     app.Init(windowConfig);
 
     Camera camera(app.glfw_window);
-    camera.eye.y = 2;
+    camera.eye.y = 5;
+    camera.eye.x = -5;
 
     Scene scene(app);
     scene.LoadModel("models/holebox.glb", true);
-    scene.meshes[0].primitives[0].material.diffuse_color = glm::vec4(0.70,0.7, 0.75f, 1.0f);
-    scene.meshes[0].primitives[0].material.roughness = 1.0;
+    scene.meshes[0].primitives[0].material.diffuse_color = glm::vec4(0.30,0.3, 0.35f, 1.0f);
+    scene.meshes[0].primitives[0].material.roughness = 0.45;
     //scene.meshes[0].primitives[12].material.glass = glm::vec4(0,0,0,0.8f);
     //scene.meshes[0].primitives[12].material.refractIndex = 1.05;
     //scene.meshes[0].primitives[12].material.roughness = 0.0;
@@ -78,11 +79,10 @@ int main(int argc, char** argv) {
     //    scene.meshes[0].primitives[i].material.roughness = 0.2f;
     //}
 
-    scene.LoadModel("models/lucy.glb", true);
+    scene.LoadModel("./models/prism.glb", true);
     scene.meshes[1].primitives[0].material.diffuse_color = glm::vec4(1.0,1.0, 1.0f, 0.0f);
-    scene.meshes[1].primitives[0].material.glass = glm::vec4(0.1,0.3,0.3,1.3f);
-    scene.meshes[1].primitives[0].material.roughness = 0;
-    scene.meshes[1].primitives[0].transform[3][1] -= 7;
+    scene.meshes[1].primitives[0].material.glass = glm::vec4(0.0,0.0,0.0,1.5f);
+    scene.meshes[1].primitives[0].material.roughness = 0.0;
 
     RTXConfig rtxConfig {
         .width = WINDOW_WIDTH,

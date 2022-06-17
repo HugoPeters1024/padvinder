@@ -68,8 +68,8 @@ void Scene::LoadModel(const char* filename, bool binary) {
 
     glm::mat4 transform = glm::mat4(1.0f);
     transform = glm::translate(transform, translation);
-    transform = glm::scale(transform, scale);
     transform = transform * glm::toMat4(rotation);
+    transform = glm::scale(transform, scale);
 
 
     // hack to eliminate non mesh nodes
@@ -127,7 +127,7 @@ void Scene::LoadModel(const char* filename, bool binary) {
         for(size_t i=0; i<nrVertices; i++) {
             glm::vec2 uv = texHead == nullptr ? glm::vec2(0) : *(texHead+i);
             glm::vec3& normal = *(normalHead+i);
-            normal = glm::normalize((glm::vec4(normal,0) * transform).xyz());
+            normal = glm::normalize((transform * glm::vec4(normal,0)).xyz());
             resmesh.vertices.push_back(GLTFVertex {
                 .pos = glm::vec4(*(posHead+i), uv.x),
                 .normal = glm::vec4(normal, uv.y),
