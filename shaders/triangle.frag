@@ -7,8 +7,8 @@ layout(location = 0) in vec2 uv;
 layout(location = 0) out vec4 outColor;
 
 void main() {
-    const float gamma = 2.0f;
-    const float exposure = 0.8f;
+    const float gamma = 2.2f;
+    const float exposure = 3.0f;
 
     vec4 bufferVal = texture(tex, uv);
 

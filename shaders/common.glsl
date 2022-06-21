@@ -63,6 +63,22 @@ vec3 SampleSphere() {
     return normalize(vec3(r0, r1, r2));
 }
 
+bool InsideHexacon(vec2 p) {
+    const float hr = 1.0f;
+    const float q2x = abs(p.x);
+    const float q2y = abs(p.y);
+    if (q2x > hr || q2y > hr * 2) return false;
+    return 2 * hr * hr - hr * q2x - hr * q2y >= 0;
+}
+
+vec2 SampleHexacon() {
+    vec2 p;
+    do {
+        p = vec2(randf(),randf())* 2.0f - 1.0f;
+    } while (!InsideHexacon(p));
+    return p;
+}
+
 float saturate (float x)
 {
     return min(1.0, max(0.0,x));
@@ -85,19 +101,13 @@ vec3 WavelengthToRGB(float w) {
 {
 	// w: [400, 700]
 	// x: [0,   1]
-	float x = saturate((w - 400.0)/ 300.0);
+    float x = saturate((w - 400.0)/ 300.0);
 
-	const vec3 c1 = vec3(3.54585104, 2.93225262, 2.41593945);
-	const vec3 x1 = vec3(0.69549072, 0.49228336, 0.27699880);
-	const vec3 y1 = vec3(0.02312639, 0.15225084, 0.52607955);
+	const vec3 cs = vec3(3.54541723, 2.86670055, 2.29421995);
+	const vec3 xs = vec3(0.69548916, 0.49416934, 0.28269708);
+	const vec3 ys = vec3(0.02320775, 0.15936245, 0.53520021);
 
-	const vec3 c2 = vec3(3.90307140, 3.21182957, 3.96587128);
-	const vec3 x2 = vec3(0.11748627, 0.86755042, 0.66077860);
-	const vec3 y2 = vec3(0.84897130, 0.88445281, 0.73949448);
-
-	return
-		bump3y(c1 * (x - x1), y1) +
-		bump3y(c2 * (x - x2), y2) ;
+	return bump3y (	cs * (x - xs), ys);
 }
 }
 

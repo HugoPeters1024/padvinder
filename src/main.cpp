@@ -60,9 +60,23 @@ int main(int argc, char** argv) {
     camera.eye.x = -5;
 
     Scene scene(app);
-    scene.LoadModel("models/holebox.glb", true);
-    scene.meshes[0].primitives[0].material.diffuse_color = glm::vec4(0.30,0.3, 0.35f, 1.0f);
-    scene.meshes[0].primitives[0].material.roughness = 0.45;
+//    {
+//        scene.LoadModel("models/rungholt.glb", true);
+//    }
+    {
+        scene.LoadModel("models/san_miguel.glb", true);
+        scene.meshes.back().primitives[124].material.diffuse_color.w = 0.0f;
+        scene.meshes.back().primitives[124].material.glass.w = 1.52f;
+        scene.meshes.back().primitives[124].material.roughness = 0.0f;
+        scene.meshes.back().primitives[124].material.roughness = 0.0f;
+        scene.meshes.back().primitives[191].material.roughness = 0.2f;
+        scene.meshes.back().primitives[5].material.roughness = 0.00;
+        scene.meshes.back().primitives[5].material.diffuse_color.w = 0.0f;
+        scene.meshes.back().primitives[5].material.glass.w = 1.33;
+    }
+//    scene.LoadModel("models/holebox.glb", true);
+//    scene.meshes[0].primitives[0].material.diffuse_color = glm::vec4(0.30,0.3, 0.35f, 1.0f);
+//    scene.meshes[0].primitives[0].material.roughness = 1.00;
     //scene.meshes[0].primitives[12].material.glass = glm::vec4(0,0,0,0.8f);
     //scene.meshes[0].primitives[12].material.refractIndex = 1.05;
     //scene.meshes[0].primitives[12].material.roughness = 0.0;
@@ -154,7 +168,7 @@ int main(int argc, char** argv) {
                 vk::ImageLayout::eReadOnlyOptimal, vk::ImageLayout::eGeneral,
                 vk::PipelineStageFlagBits::eFragmentShader, vk::PipelineStageFlagBits::eRayTracingShaderKHR,
                 vk::inits::imageSubresourceRange(vk::ImageAspectFlagBits::eColor));
-        rtx.Record(cmdBuffer, tick, camera.getViewMatrix());
+        rtx.Record(cmdBuffer, tick, camera);
         vk::tools::insertImageMemoryBarrier(cmdBuffer, rtx.storage_image.handle,
                 vk::AccessFlagBits::eMemoryWrite, vk::AccessFlagBits::eShaderRead,
                 vk::ImageLayout::eGeneral, vk::ImageLayout::eShaderReadOnlyOptimal,

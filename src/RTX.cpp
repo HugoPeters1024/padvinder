@@ -46,13 +46,14 @@ void RTX::Destroy() {
     app.vk_device.destroyDescriptorSetLayout(this->descr_layout);
 }
 
-void RTX::Record(vk::CommandBuffer cmdBuffer, uint32_t tick, glm::mat4 viewMatrix) {
+void RTX::Record(vk::CommandBuffer cmdBuffer, uint32_t tick, const Camera& camera) {
     float aspectRatio = static_cast<float>(config.width) / static_cast<float>(config.height);
     resources.uniform_buffer_data->proj = glm::perspective(glm::radians(45.0f), aspectRatio, 0.0001f, 10000.0f);
     resources.uniform_buffer_data->proj[1][1] *= -1;
     resources.uniform_buffer_data->projInverse = glm::inverse(resources.uniform_buffer_data->proj);
-    resources.uniform_buffer_data->view = viewMatrix;
-    resources.uniform_buffer_data->viewInverse = glm::inverse(viewMatrix);
+    resources.uniform_buffer_data->view = camera.getViewMatrix();
+    resources.uniform_buffer_data->viewInverse = glm::inverse(resources.uniform_buffer_data->view);
+    resources.uniform_buffer_data->viewDirection = glm::vec4(camera.getViewDir(), 0.0f);
     resources.uniform_buffer_data->time = static_cast<float>(glfwGetTime());
     resources.uniform_buffer_data->tick = tick;
     const uint32_t handleSizeAlligned = vk::tools::allignedSize(pipeline_properties.shaderGroupHandleSize, pipeline_properties.shaderGroupHandleAlignment);

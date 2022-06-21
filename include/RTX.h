@@ -6,6 +6,7 @@
 #include <BufferTools.h>
 #include <ImageTools.h>
 #include <Scene.h>
+#include <Camera.h>
 
 struct RTXAccelerationStructure {
     vk::AccelerationStructureKHR handle;
@@ -26,6 +27,7 @@ struct UniformData {
     glm::mat4 projInverse;
     glm::mat4 view;
     glm::mat4 viewInverse;
+    glm::vec4 viewDirection;
     float time;
     uint32_t tick;
 };
@@ -42,7 +44,7 @@ public:
 
     RTX(AppBase& app, Scene& scene, RTXConfig& config);
     void Destroy();
-    void Record(vk::CommandBuffer cmdBuffer, uint32_t tick, glm::mat4 viewMatrix);
+    void Record(vk::CommandBuffer cmdBuffer, uint32_t tick, const Camera& camera);
 
     vk::Sampler CreateStorageImageSampler();
 

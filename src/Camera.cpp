@@ -10,7 +10,7 @@ void Camera::update(float dt) {
     hasMoved = false;
 
     const float moveSpeed = 3.0f * dt;
-    const float rotSpeed = 3.0f * dt;
+    const float rotSpeed = 2.0f * dt;
     const glm::vec3 viewDir = getViewDir();
     const glm::vec3 sideDir = cross(glm::vec3(0,1,0), viewDir);
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) { hasMoved = true, eye += moveSpeed * viewDir; }

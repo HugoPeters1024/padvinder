@@ -72,6 +72,8 @@ void main() {
         payload.material.diffuse_color = texture(textures[textureID], texUV);
     }
 
+    payload.material.roughness *= payload.material.diffuse_color.w;
+
     uint normalTextureID = payload.material.normalTextureID;
     if (normalTextureID != -1) {
         vec3 edge1 = triangle.v1.pos.xyz - triangle.v0.pos.xyz;

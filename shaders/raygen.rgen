@@ -11,6 +11,7 @@ layout(binding = 2) uniform Uniforms {
     mat4 projInverse;
     mat4 view;
     mat4 viewInverse;
+    vec4 viewDirection;
     float time;
     uint tick;
 };
@@ -38,9 +39,21 @@ void main() {
     const vec2 pixelCenter = vec2(gl_LaunchIDEXT.xy) + vec2(randf(), randf());
     const vec2 screenUV = (pixelCenter / vec2(gl_LaunchSizeEXT.xy)) * 2.0f - 1.0f;
 
-    vec3 ray_origin = (viewInverse * vec4(0,0,0,1)).xyz;
-    vec3 target = (projInverse * vec4(screenUV, 1, 1)).xyz;
-    vec3 ray_direction = normalize((viewInverse * vec4(target, 0)).xyz);
+    const float focalDistance = 9.5f;
+    const float aperature = 0.01f;
+    const float offsetR = sqrt(randf());
+    const float offsetA = randf() * 2.0f * PI;
+    //const vec2 focalOffset = aperature * vec2(offsetR * sin(offsetA), offsetR * cos(offsetA));
+    const vec2 focalOffset = aperature * SampleHexacon();
+
+    vec3 eye = (viewInverse * vec4(0,0,0,1)).xyz;
+    vec3 screenLocPrecise = (viewInverse * vec4((projInverse * vec4(screenUV, 1, 1)).xyz,1)).xyz;
+    vec3 screenLocOffsetted = (viewInverse * vec4((projInverse * vec4(screenUV + focalOffset, 1, 1)).xyz,1)).xyz;
+
+    vec3 ray_direction = normalize(screenLocPrecise - eye);
+    const vec3 focalPoint = eye + (focalDistance-1) * ray_direction;
+    ray_direction = normalize(focalPoint - screenLocOffsetted);
+    vec3 ray_origin = screenLocOffsetted - ray_direction * max(0, (2 - dot(ray_direction, viewDirection.xyz)));
 
     float wavelength = randf() * 300 + 400;
 
@@ -55,12 +68,12 @@ void main() {
 
         if (payload.hit) {
 
-            if (tick == 0) {
-                acc = abs(payload.normal);
-                break;
-            }
+            //if (tick == 0) {
+            //    acc = abs(payload.normal);
+            //    break;
+            //}
 
-            float cFog = 0.0009f;
+            float cFog = 0.0008f;
             float tFog = -log(1-randf()) / cFog;
 
             if (tFog < payload.t) {
@@ -69,14 +82,18 @@ void main() {
                 }
                 ray_origin = ray_origin + tFog * ray_direction;
                 const float uq = 1.0f;
-                ray_direction = normalize(uq * SampleSphere() + (1-uq) * ray_direction);
+                if (randf() < uq) {
+                    ray_direction = SampleSphere();
+                } else {
+                    ray_direction = SampleHemisphereCosine(ray_direction);
+                }
             } else if (randf() > payload.material.diffuse_color.w) {
                 if (payload.inside) {
                     mask *= exp(-payload.material.glass.rgb * payload.t);
                 }
 
                 // refract index based on wavelength
-                const float A = 1.45f;
+                const float A = payload.material.glass.w;
                 const float B = 35000.0f;
                 float refract_index = A + B / (wavelength * wavelength);
 
@@ -131,15 +148,16 @@ void main() {
                     break;
                 }
             }
-        } 
+        }
         else {
             vec2 uv = vec2(atan(ray_direction.x, ray_direction.z)/(2 * PI), acos(ray_direction.y) / PI);
-            vec3 sky = 200 * vec3(90, 90, 90) * pow(max(0, dot(ray_direction, vec3(0,0,-1))), 300);
+            vec3 sky = texture(skybox, uv).xyz;
+
 
             if (depth == 0) {
                 acc = sky;
             } else {
-                acc += mask * sky;
+                acc += mask * 5 * sky;
             }
             break;
         }
