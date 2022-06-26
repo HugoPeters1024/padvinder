@@ -68,18 +68,14 @@ int main(int argc, char** argv) {
 //        scene.meshes.back().primitives[124].material.diffuse_color.w = 0.0f;
 //        scene.meshes.back().primitives[124].material.glass.w = 1.52f;
 //        scene.meshes.back().primitives[124].material.roughness = 0.0f;
-//        scene.meshes.back().primitives[124].material.roughness = 0.0f;
 //        scene.meshes.back().primitives[5].material.roughness = 0.00;
 //        scene.meshes.back().primitives[5].material.diffuse_color.w = 0.0f;
 //        scene.meshes.back().primitives[5].material.glass.w = 1.33;
-//        scene.meshes.back().primitives[13].material.emission = 25.0f * glm::vec4(20,15,15,0);
-//        scene.meshes.back().primitives[8].material.emission = 0 * 10.0f * glm::vec4(20,15,15,0);
+//        scene.meshes.back().primitives[13].material.emission = glm::vec4(2,1,1,0);
 //        // plate
 //        scene.meshes.back().primitives[122].material.metallic = 0.8f;
 //        scene.meshes.back().primitives[122].material.roughness = 0.3f;
-//        // pillar
-//        scene.meshes.back().primitives[151].material.metallic = 0.5f;
-//        scene.meshes.back().primitives[151].material.roughness = 0.7f;
+//        scene.meshes.back().primitives[151].material.roughness = 0.0f;
 //        
 //        // chair
 //        scene.meshes.back().primitives[133].material.roughness = 0.2f;
@@ -88,26 +84,23 @@ int main(int argc, char** argv) {
 //          scene.LoadModel("models/sibenik.glb", true);
       }
       {
-//          scene.LoadModel("models/bistro.glb", true);
+//          scene.LoadModel("models/bistro_exterior.glb", true);
 //          scene.meshes.back().primitives[38].material.emission = 0.0f * glm::vec4(4, 2, 3,0);
 //          scene.meshes.back().primitives[39].material.emission = 0.0f * glm::vec4(2, 1, 1.5,0);
 //          scene.meshes.back().primitives[8].material.diffuse_color.w = 0.0f;
 //          scene.meshes.back().primitives[8].material.glass.w = 1.46f;
       }
 
-    scene.LoadModel("models/fireplace_room.glb", true);
-    scene.meshes.back().primitives[1].material.diffuse_color.w = 0.0f;
-    scene.meshes.back().primitives[1].material.glass.w = 1.46f;
+//    scene.LoadModel("models/fireplace_room.glb", true);
+//    scene.meshes.back().primitives[1].material.diffuse_color.w = 0.0f;
+//    scene.meshes.back().primitives[1].material.glass.w = 1.46f;
 
     
 
-//    scene.LoadModel("models/holebox.glb", true);
-//    scene.meshes[0].primitives[0].material.diffuse_color = glm::vec4(0.30,0.3, 0.35f, 1.0f);
-//    scene.meshes[0].primitives[0].material.roughness = 1.00;
-    //scene.meshes[0].primitives[12].material.glass = glm::vec4(0,0,0,0.8f);
-    //scene.meshes[0].primitives[12].material.refractIndex = 1.05;
-    //scene.meshes[0].primitives[12].material.roughness = 0.0;
-    //scene.meshes[0].primitives[98].material.roughness = 0.2;
+    scene.LoadModel("models/holebox.glb", true);
+    scene.meshes[0].primitives[0].material.diffuse_color = glm::vec4(0.30,0.3, 0.35f, 1.0f);
+    scene.meshes[0].primitives[0].material.glass = glm::vec4(0,0,0,1.0f);
+    scene.meshes[0].primitives[0].material.roughness = 1.00;
 
     // floor
     //scene.meshes[0].primitives[46].material.roughness = 0.4f;
@@ -120,10 +113,10 @@ int main(int argc, char** argv) {
     //    scene.meshes[0].primitives[i].material.roughness = 0.2f;
     //}
 
-//    scene.LoadModel("./models/prism.glb", true);
-//    scene.meshes[1].primitives[0].material.diffuse_color = glm::vec4(1.0,1.0, 1.0f, 0.0f);
-//    scene.meshes[1].primitives[0].material.glass = glm::vec4(0.0,0.0,0.0,1.5f);
-//    scene.meshes[1].primitives[0].material.roughness = 0.0;
+    scene.LoadModel("./models/prism.glb", true);
+    scene.meshes[1].primitives[0].material.diffuse_color = glm::vec4(1.0,1.0, 1.0f, 0.0f);
+    scene.meshes[1].primitives[0].material.glass = glm::vec4(0.0,0.0,0.0,1.5f);
+    scene.meshes[1].primitives[0].material.roughness = 0.0;
 //
 
     RTXConfig rtxConfig {

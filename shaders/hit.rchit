@@ -74,7 +74,6 @@ void main() {
         payload.material.diffuse_color = texture(textures[textureID], texUV) * payload.material.diffuse_color;
     }
 
-    payload.tangentToWorld = AlignToNormalM(payload.surface_normal);
 
     uint normalTextureID = payload.material.normalTextureID;
     if (normalTextureID != -1) {
@@ -88,7 +87,7 @@ void main() {
         vec2 deltaUV2 = uv2 - uv0;
 
         float div = (deltaUV1.x * deltaUV2.y - deltaUV2.x * deltaUV1.y);
-        if (abs(div) > 0.00001f) {
+        if (abs(div) > 0.001f) {
             const float f = 1.0f / div;
             vec3 tangent;
             tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
@@ -97,11 +96,13 @@ void main() {
             tangent = normalize(tangent);
 
             vec3 bitangent = normalize(cross(payload.normal, tangent));
-            payload.tangentToWorld = mat3(tangent, bitangent, payload.normal);
+            mat3 TBN = mat3(tangent, bitangent, payload.normal);
 
             vec3 texNormal = texture(textures[normalTextureID], texUV).xyz * 2.0f - 1.0f;
-            payload.normal = normalize(payload.tangentToWorld * texNormal);
+            payload.normal = normalize(TBN * texNormal);
         }
     }
+
+    payload.tangentToWorld = AlignToNormalM(payload.normal);
 }
 

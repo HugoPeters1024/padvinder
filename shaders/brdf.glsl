@@ -89,7 +89,7 @@ float SmithGGXMaskingShadowing(vec3 wi, vec3 wo, float a2)
 
 //====================================================================
 void ImportanceSampleGgxD(vec3 wo, in Material material,
-                          out vec3 wi, out vec3 reflectance)
+                          out vec3 wi, out vec3 reflectance, out vec3 wm)
 {
     float a = material.roughness;
     float a2 = a * a;
@@ -104,7 +104,7 @@ void ImportanceSampleGgxD(vec3 wo, in Material material,
     float phi   = 2.0f * PI * e1;
 
     // -- Convert from spherical to Cartesian coordinates
-    vec3 wm = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
+    wm = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
 
     // -- Calculate wi by reflecting wo about wm
     wi = 2.0f * dot(wo, wm) * wm - wo;
@@ -124,6 +124,64 @@ void ImportanceSampleGgxD(vec3 wo, in Material material,
                      / (BsdfNDot(wo) * BsdfNDot(wm));
 
         reflectance = F * G * weight; 
+    }
+    else {
+        reflectance = vec3(0);
+    }
+}
+
+//====================================================================
+float SmithGGXMasking(vec3 wi, vec3 wo, float a2)
+{
+    float dotNL = BsdfNDot(wi);
+    float dotNV = BsdfNDot(wo);
+    float denomC = sqrt(a2 + (1.0f - a2) * dotNV * dotNV) + dotNV;
+
+    return 2.0f * dotNV / denomC;
+}
+
+
+vec3 SampleGGXVNDF(vec3 V_, float alpha_x, float alpha_y, float U1, float U2)
+{
+    // stretch view
+    vec3 V = normalize(vec3(alpha_x * V_.x, alpha_y * V_.y, V_.z));
+    // orthonormal basis
+    vec3 T1 = (V.z < 0.9999) ? normalize(cross(V, vec3(0,0,1))) : vec3(1,0,0);
+    vec3 T2 = cross(T1, V);
+    // sample point with polar coordinates (r, phi)
+    float a = 1.0 / (1.0 + V.z);
+    float r = sqrt(U1);
+    float phi = (U2<a) ? U2/a * PI : PI + (U2-a)/(1.0-a) * PI;
+    float P1 = r*cos(phi);
+    float P2 = r*sin(phi)*((U2<a) ? 1.0 : V.z);
+    // compute normal
+    vec3 N = P1*T1 + P2*T2 + sqrt(max(0.0, 1.0 - P1*P1 - P2*P2))*V;
+    // unstretch
+    N = normalize(vec3(alpha_x*N.x, alpha_y*N.y, max(0.0, N.z)));
+    return N;
+}
+
+//====================================================================
+void ImportanceSampleGgxVdn(vec3 wo, Material material,
+                            out vec3 wi, out vec3 reflectance, out vec3 wm)
+{
+    vec3 specularColor = material.diffuse_color.xyz;
+    float a = material.roughness;
+    float a2 = a * a;
+
+    float r0 = randf(); 
+    float r1 = randf(); 
+    wm = SampleGGXVNDF(wo, a,a,r0,r1);
+
+    // -- Calculate wi by reflecting wo about wm
+    wi = 2.0f * dot(wo, wm) * wm - wo;
+
+    if(BsdfNDot(wo) > 0.0f && BsdfNDot(wi) > 0.0f && dot(wi, wm) > 0.0f) {
+        vec3 F = SchlickFresnel(specularColor, dot(wi, wm));
+        float G1 = SmithGGXMasking(wi, wo, a2);
+        float G2 = SmithGGXMaskingShadowing(wi, wo, a2);
+
+        reflectance = F * (G2 / G1);
     }
     else {
         reflectance = vec3(0);

@@ -70,7 +70,7 @@ void main() {
         traceRayEXT(topLevelAS, gl_RayFlagsOpaqueEXT, 0xff, 0, 0, 0, ray_origin, tmin, ray_direction, tmax, 0);
 
         if (payload.hit) {
-            float cFog = 0.000028f;
+            float cFog = 0.00028f;
             float tFog = -log(1-randf()) / cFog;
 
             if (tFog < payload.t) {
@@ -135,7 +135,15 @@ void main() {
                 vec3 wi;
                 vec3 refl;
                 vec3 wm; 
-                ImportanceSampleGgxD(wo, payload.material, wi, refl);
+                ImportanceSampleGgxVdn(wo, payload.material, wi, refl, wm);
+
+                ray_origin = ray_origin + (payload.t-EPS) * ray_direction;
+                ray_direction = payload.tangentToWorld * wi;
+
+                if (dot(ray_direction, payload.surface_normal) <= 0) {
+                    break;
+                }
+
 
 //                acc = payload.tangentToWorld * wi;
  //               break;
@@ -148,12 +156,7 @@ void main() {
 
 //                mask *= BRDF(wo, wi, wn, payload.material.diffuse_color.xyz, payload.material.metallic,payload.material.roughness);
 
-                ray_origin = ray_origin + (payload.t-EPS) * ray_direction;
-                ray_direction = payload.tangentToWorld * wi;
 
-                if (dot(ray_direction, payload.surface_normal) <= 0) {
-                    break;
-                }
 
                 const float russianP = clamp(max3(payload.material.diffuse_color.xyz), 0.1f, 0.9f);
                 if (randf() < russianP) {
@@ -166,7 +169,7 @@ void main() {
         }
         else {
             vec2 uv = vec2(atan(ray_direction.x, ray_direction.z)/(2 * PI), acos(ray_direction.y) / PI);
-            vec3 sky = 0.01 * texture(skybox, uv).xyz;
+            vec3 sky = texture(skybox, uv).xyz + vec3(100);
 
 
             if (depth == 0) {
