@@ -12,6 +12,7 @@ layout(binding = 6) uniform sampler2D textures[];
 hitAttributeEXT vec2 baryCoord;
 
 layout(location = 0) rayPayloadInEXT Payload {
+    mat3 tangentToWorld;
     bool hit;
     bool inside;
     float t;
@@ -65,14 +66,15 @@ void main() {
     payload.normal = payload.surface_normal;
 
     payload.material = materials[geometryID];
+
     vec2 texUV = triangleUV(triangle);
 
     uint textureID = payload.material.textureID;
     if (textureID != -1) {
-        payload.material.diffuse_color = texture(textures[textureID], texUV);
+        payload.material.diffuse_color = texture(textures[textureID], texUV) * payload.material.diffuse_color;
     }
 
-    payload.material.roughness *= payload.material.diffuse_color.w;
+    payload.tangentToWorld = AlignToNormalM(payload.surface_normal);
 
     uint normalTextureID = payload.material.normalTextureID;
     if (normalTextureID != -1) {
@@ -92,12 +94,13 @@ void main() {
             tangent.x = f * (deltaUV2.y * edge1.x - deltaUV1.y * edge2.x);
             tangent.y = f * (deltaUV2.y * edge1.y - deltaUV1.y * edge2.y);
             tangent.z = f * (deltaUV2.y * edge1.z - deltaUV1.y * edge2.z);
+            tangent = normalize(tangent);
 
-            vec3 bitangent = cross(payload.normal, tangent);
-            mat3 TBN = mat3(normalize(tangent), normalize(bitangent), payload.normal);
+            vec3 bitangent = normalize(cross(payload.normal, tangent));
+            payload.tangentToWorld = mat3(tangent, bitangent, payload.normal);
 
             vec3 texNormal = texture(textures[normalTextureID], texUV).xyz * 2.0f - 1.0f;
-            payload.normal = normalize(TBN * texNormal);
+            payload.normal = normalize(payload.tangentToWorld * texNormal);
         }
     }
 }

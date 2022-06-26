@@ -1,5 +1,8 @@
+#ifndef GLSL_COMMON
+#define GLSL_COMMON
 const float PI = 3.141592653589793f;
-const float EPS = 0.005f;
+const float INVPI = 1.0f / 3.141592653589793f;
+const float EPS = 0.001f;
 
 float max3(in vec3 v) { return max(v.x, max(v.y, v.z)); }
 
@@ -30,13 +33,28 @@ float randf()
     return g_seed * 2.3283064365387e-10f;
 }
 
-vec3 AlignToNormal(in vec3 normal, in vec3 i) {
+float randf_seed(in uint seed) {
+    return wang_hash(seed) * 2.3283064365387e-10f;
+}
+
+mat3 AlignToNormalM(in vec3 normal) {
     const vec3 w = normal;
     const vec3 u = normalize(cross((abs(w.x) > .1f ? vec3(0, 1, 0) : vec3(1, 0, 0)), w));
     const vec3 v = normalize(cross(w,u));
-
-    return mat3(u, v, w) * i;
+    return mat3(u, v, w);
 }
+
+mat3 AlignToNormalM_YUp(in vec3 normal) {
+    const vec3 w = normal;
+    const vec3 u = abs(w.y) < 0.999f ? normalize(cross(w, vec3(0,1,0))) : vec3(1,0,0);
+    const vec3 v = normalize(cross(w,u));
+    return mat3(u, w, v);
+}
+
+vec3 AlignToNormal(in vec3 normal, in vec3 i) {
+    return AlignToNormalM(normal) * i;
+}
+
 
 vec3 SampleHemisphereCosine(in vec3 normal)
 {
@@ -50,17 +68,16 @@ vec3 SampleHemisphereCosine(in vec3 normal)
     return AlignToNormal(normal, ret);
 }
 
-vec3 SampleSphere() {
-    float r0 = 1.0f;
-    float r1 = 1.0f;
-    float r2 = 1.0f;
-    do {
-        r0 = randf() * 2 - 1;
-        r1 = randf() * 2 - 1;
-        r2 = randf() * 2 - 1;
-    } while (r0 * r0 + r1 * r1 + r2 * r2 > 1);
 
-    return normalize(vec3(r0, r1, r2));
+vec3 SampleSphere() {
+    float theta = 2 * PI * randf();
+    float phi = acos(1 - 2 * randf());
+    return vec3(sin(phi) * cos(theta), sin(phi) * sin(theta), cos(phi));
+}
+
+vec3 SampleHemisphereUniformTangent() {
+    vec3 r = SampleSphere();
+    return dot(r, vec3(0,0,1)) < 0 ? -r : r;
 }
 
 bool InsideHexacon(vec2 p) {
@@ -98,7 +115,6 @@ vec3 bump3y (vec3 x, vec3 yoffset)
 // Based on GPU Gems
 // Optimised by Alan Zucconi
 vec3 WavelengthToRGB(float w) {
-{
 	// w: [400, 700]
 	// x: [0,   1]
     float x = saturate((w - 400.0)/ 300.0);
@@ -109,10 +125,6 @@ vec3 WavelengthToRGB(float w) {
 
 	return bump3y (	cs * (x - xs), ys);
 }
-}
-
-
-
 
 struct Material {
     vec4 diffuse_color;
@@ -120,6 +132,7 @@ struct Material {
     // absorption + translucency
     vec4 glass;
     float roughness;
+    float metallic;
     uint textureID;
     uint normalTextureID;
 };
@@ -134,3 +147,4 @@ struct Triangle {
     GLTFVertex v1;
     GLTFVertex v2;
 };
+#endif

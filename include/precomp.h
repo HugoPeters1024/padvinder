@@ -22,7 +22,6 @@
 #include <tiny_gltf.h>
 
 
-
 #include <cstdio>
 #include <vector>
 #include <optional>

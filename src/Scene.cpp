@@ -151,7 +151,11 @@ void Scene::LoadModel(const char* filename, bool binary) {
         }
 
         res.material.emission = glm::vec4(0);
+        res.material.glass = glm::vec4(0,0,0,1);
+        res.material.diffuse_color = glm::vec4(1);
         res.material.texture_id = -1;
+        res.material.roughness = 1;
+        res.material.metallic = 1;
         res.material.normal_texture_id = -1;
         if (primitive.material != -1) {
             const auto& m = model.materials[primitive.material];
@@ -159,8 +163,26 @@ void Scene::LoadModel(const char* filename, bool binary) {
             res.material.diffuse_color.x = m.pbrMetallicRoughness.baseColorFactor[0];
             res.material.diffuse_color.y = m.pbrMetallicRoughness.baseColorFactor[1];
             res.material.diffuse_color.z = m.pbrMetallicRoughness.baseColorFactor[2];
-            res.material.diffuse_color.w = m.pbrMetallicRoughness.baseColorFactor[3];
+            const float m_alpha = m.pbrMetallicRoughness.baseColorFactor[3];
+            if (m.alphaMode == "OPAQUE") {
+                res.material.diffuse_color.w = 1.0f;
+            } else if (m.alphaMode == "MASK") {
+                if (m_alpha > m.alphaCutoff) {
+                    res.material.diffuse_color.w = 1.0f;
+                } else {
+                    res.material.diffuse_color.w = 0.0f;
+                }
+            } else if (m.alphaMode == "BLEND") {
+                res.material.diffuse_color.w = m_alpha;
+            } else {
+                assert(false);
+            }
             res.material.roughness = m.pbrMetallicRoughness.roughnessFactor;
+            res.material.metallic = m.pbrMetallicRoughness.metallicFactor;
+
+            res.material.emission.x = m.emissiveFactor[0];
+            res.material.emission.y = m.emissiveFactor[1];
+            res.material.emission.z = m.emissiveFactor[2];
 
             const TextureID textureID = m.pbrMetallicRoughness.baseColorTexture.index;
             if (textureID != -1) {

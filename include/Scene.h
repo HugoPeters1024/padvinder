@@ -12,11 +12,12 @@ struct GLTFTexture {
     std::vector<uint8_t> data;
 };
 
-struct alignas(16) GLTFMaterial {
+struct GLTFMaterial {
     glm::vec4 diffuse_color = glm::vec4(1,1,1,1);
     glm::vec4 emission = glm::vec4(0);
     glm::vec4 glass = glm::vec4(0,0,0,1);
     float roughness = 1.0f;
+    float metallic = 1.0f;
     TextureID texture_id;
     TextureID normal_texture_id;
 };

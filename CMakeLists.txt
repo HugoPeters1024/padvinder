@@ -1,11 +1,11 @@
-cmake_minimum_required(VERSION 3.19)
+cmake_minimum_required(VERSION 3.19) 
 set(CMAKE_CXX_STANDARD 20)
 project(vulkanapp)
 
 macro(shader)
     add_custom_command(
             OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/shaders_bin/${ARGV0}.spv
-            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/shaders/${ARGV0} ${CMAKE_CURRENT_SOURCE_DIR}/shaders/common.glsl
+            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/shaders/${ARGV0} ${CMAKE_CURRENT_SOURCE_DIR}/shaders/common.glsl ${CMAKE_CURRENT_SOURCE_DIR}/shaders/brdf.glsl
             COMMAND /usr/bin/glslc
             ARGS ${CMAKE_CURRENT_SOURCE_DIR}/shaders/${ARGV0} -o ${CMAKE_CURRENT_SOURCE_DIR}/shaders_bin/${ARGV0}.spv -O --target-env=vulkan1.2
             COMMENT building shaders
@@ -40,6 +40,11 @@ target_link_libraries(vulkanapp glm)
 add_subdirectory(${CMAKE_SOURCE_DIR}/external/spdlog)
 link_directories(${CMAKE_SOURCE_DIR}/external/spdlog)
 include_directories(vulkanapp PRIVATE ${CMAKE_SOURCE_DIR}/external/spdlog/include/)
+target_link_libraries(vulkanapp spdlog)
+
+add_subdirectory(${CMAKE_SOURCE_DIR}/external/RayTracingDenoiser)
+link_directories(${CMAKE_SOURCE_DIR}/external/RayTracingDenoiser)
+include_directories(vulkanapp PRIVATE ${CMAKE_SOURCE_DIR}/external/RayTracingDenoiser/Include/)
 target_link_libraries(vulkanapp spdlog)
 
 find_package(Vulkan REQUIRED)

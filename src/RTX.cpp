@@ -48,7 +48,7 @@ void RTX::Destroy() {
 
 void RTX::Record(vk::CommandBuffer cmdBuffer, uint32_t tick, const Camera& camera) {
     float aspectRatio = static_cast<float>(config.width) / static_cast<float>(config.height);
-    resources.uniform_buffer_data->proj = glm::perspective(glm::radians(45.0f), aspectRatio, 0.0001f, 10000.0f);
+    resources.uniform_buffer_data->proj = glm::perspective(glm::radians(50.0f), aspectRatio, 0.0001f, 10000.0f);
     resources.uniform_buffer_data->proj[1][1] *= -1;
     resources.uniform_buffer_data->projInverse = glm::inverse(resources.uniform_buffer_data->proj);
     resources.uniform_buffer_data->view = camera.getViewMatrix();

@@ -177,7 +177,7 @@ void WindowApp::createSyncObjects() {
 vk::SurfaceFormatKHR WindowApp::chooseSurfaceFormat() const {
     auto formats = vk_physical_device.getSurfaceFormatsKHR(vk_surface);
     for(auto format : formats) {
-        if (format.format == vk::Format::eB8G8R8Srgb && format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear) {
+        if (format.format == vk::Format::eB8G8R8A8Unorm && format.colorSpace == vk::ColorSpaceKHR::eSrgbNonlinear) {
             return format;
         }
     }
