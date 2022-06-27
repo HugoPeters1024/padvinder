@@ -169,7 +169,7 @@ void main() {
         }
         else {
             vec2 uv = vec2(atan(ray_direction.x, ray_direction.z)/(2 * PI), acos(ray_direction.y) / PI);
-            vec3 sky = texture(skybox, uv).xyz + vec3(100);
+            vec3 sky = texture(skybox, uv).xyz;
 
 
             if (depth == 0) {
