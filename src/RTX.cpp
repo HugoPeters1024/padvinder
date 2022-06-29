@@ -165,35 +165,72 @@ void RTX::createBottomLevelAS() {
 
         vk::AccelerationStructureBuildGeometryInfoKHR buildInfo {
             .type = vk::AccelerationStructureTypeKHR::eBottomLevel,
-            .flags = vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace,
+            .flags = vk::BuildAccelerationStructureFlagBitsKHR::ePreferFastTrace | vk::BuildAccelerationStructureFlagBitsKHR::eAllowCompaction,
             .geometryCount = static_cast<uint32_t>(meshGeometries.size()),
             .pGeometries = meshGeometries.data(),
         };
 
         auto buildSizesInfo = app.vk_device.getAccelerationStructureBuildSizesKHR(vk::AccelerationStructureBuildTypeKHR::eDevice, buildInfo, meshGeometiesTriangleCounts, app.vk_ext_dispatcher);
-        instanceData.acceleration_structure.buffer = buffertools::CreateBufferD(app, vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress, buildSizesInfo.accelerationStructureSize);
+        auto stagingASBuffer = buffertools::CreateBufferD(app, vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress, buildSizesInfo.accelerationStructureSize);
 
         vk::AccelerationStructureCreateInfoKHR createInfo {
-            .buffer = instanceData.acceleration_structure.buffer.handle,
+            .buffer = stagingASBuffer.handle,
             .size = buildSizesInfo.accelerationStructureSize,
             .type = vk::AccelerationStructureTypeKHR::eBottomLevel,
         };
-        instanceData.acceleration_structure.handle = app.vk_device.createAccelerationStructureKHR(createInfo, nullptr, app.vk_ext_dispatcher);
+        auto stagingAS = app.vk_device.createAccelerationStructureKHR(createInfo, nullptr, app.vk_ext_dispatcher);
 
         Buffer scratchBuffer = buffertools::CreateBufferD(app, vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eShaderDeviceAddress, buildSizesInfo.buildScratchSize);
 
         buildInfo.mode = vk::BuildAccelerationStructureModeKHR::eBuild;
-        buildInfo.dstAccelerationStructure = instanceData.acceleration_structure.handle;
+        buildInfo.dstAccelerationStructure = stagingAS;
         buildInfo.scratchData.deviceAddress = buffertools::GetBufferDeviceAddress(app, scratchBuffer);
-
-
 
         app.WithSingleTimeCommandBuffer([&](vk::CommandBuffer cmdBuffer) {
             cmdBuffer.buildAccelerationStructuresKHR(buildInfo, meshGeomtriesBuildRanges.data(), app.vk_ext_dispatcher);
         });
-
         buffertools::DestroyBuffer(app, scratchBuffer);
 
+        vk::QueryPoolCreateInfo poolInfo {
+            .queryType = vk::QueryType::eAccelerationStructureCompactedSizeKHR,
+            .queryCount = 1,
+        };
+        auto pool = app.vk_device.createQueryPool(poolInfo);
+        app.WithSingleTimeCommandBuffer([&](vk::CommandBuffer cmdBuffer) {
+            cmdBuffer.resetQueryPool(pool, 0, 1, app.vk_ext_dispatcher);
+        });
+
+        app.WithSingleTimeCommandBuffer([&](vk::CommandBuffer cmdBuffer) {
+            cmdBuffer.writeAccelerationStructuresPropertiesKHR({stagingAS}, vk::QueryType::eAccelerationStructureCompactedSizeKHR, pool, 0, app.vk_ext_dispatcher);
+        });
+
+        vk::DeviceSize compactedSize;
+        vk::resultCheck(app.vk_device.getQueryPoolResults(pool, 0, 1, sizeof(vk::DeviceSize), &compactedSize, sizeof(vk::DeviceSize), vk::QueryResultFlagBits::eWait, app.vk_ext_dispatcher),"");
+        app.vk_device.destroyQueryPool(pool);
+
+        logger::info("Compaction {}%", float(compactedSize) / buildSizesInfo.accelerationStructureSize);
+
+        instanceData.acceleration_structure.buffer = buffertools::CreateBufferD(app, vk::BufferUsageFlagBits::eAccelerationStructureStorageKHR | vk::BufferUsageFlagBits::eShaderDeviceAddress, compactedSize);
+        vk::AccelerationStructureCreateInfoKHR compactCreateInfo {
+            .buffer = instanceData.acceleration_structure.buffer.handle,
+            .size = compactedSize,
+            .type = vk::AccelerationStructureTypeKHR::eBottomLevel,
+        };
+
+        instanceData.acceleration_structure.handle = app.vk_device.createAccelerationStructureKHR(compactCreateInfo, nullptr, app.vk_ext_dispatcher);
+
+
+        app.WithSingleTimeCommandBuffer([&](vk::CommandBuffer cmdBuffer) {
+            vk::CopyAccelerationStructureInfoKHR copyInfo {
+                .src = stagingAS,
+                .dst = instanceData.acceleration_structure.handle,
+                .mode = vk::CopyAccelerationStructureModeKHR::eCompact,
+            };
+            cmdBuffer.copyAccelerationStructureKHR(copyInfo, app.vk_ext_dispatcher);
+        });
+
+        app.vk_device.destroyAccelerationStructureKHR(stagingAS, nullptr, app.vk_ext_dispatcher);
+        buffertools::DestroyBuffer(app, stagingASBuffer);
         resources.instances.push_back(instanceData);
     }
 }

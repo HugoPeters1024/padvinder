@@ -130,7 +130,7 @@ void main() {
                 
                 acc += mask * payload.material.emission.xyz;
 
-                vec3 wo = inverse(payload.tangentToWorld) * -ray_direction;
+                vec3 wo = transpose(payload.tangentToWorld) * -ray_direction;
 
                 vec3 wi;
                 vec3 refl;

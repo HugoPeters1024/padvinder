@@ -176,7 +176,7 @@ void ImportanceSampleGgxVdn(vec3 wo, Material material,
     // -- Calculate wi by reflecting wo about wm
     wi = 2.0f * dot(wo, wm) * wm - wo;
 
-    if(BsdfNDot(wo) > 0.0f && BsdfNDot(wi) > 0.0f && dot(wi, wm) > 0.0f) {
+    if(BsdfNDot(wo) > 0.0f && BsdfNDot(wi) > 0.0f) {
         vec3 F = SchlickFresnel(specularColor, dot(wi, wm));
         float G1 = SmithGGXMasking(wi, wo, a2);
         float G2 = SmithGGXMaskingShadowing(wi, wo, a2);

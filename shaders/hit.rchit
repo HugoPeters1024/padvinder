@@ -50,6 +50,9 @@ vec2 triangleUV(in Triangle t) {
          + baryWeights.z * vec2(t.v2.pos.w, t.v2.normal.w);
 }
 
+void shade() {
+}
+
 
 void main() {
     payload.hit = true;
@@ -105,4 +108,5 @@ void main() {
 
     payload.tangentToWorld = AlignToNormalM(payload.normal);
 }
+
 

@@ -84,16 +84,17 @@ int main(int argc, char** argv) {
 //          scene.LoadModel("models/sibenik.glb", true);
       }
       {
-//          scene.LoadModel("models/bistro_exterior.glb", true);
+          scene.LoadModel("models/bistro.glb", true);
+          scene.meshes.back().primitives[33].material.roughness = 0.4;
 //          scene.meshes.back().primitives[38].material.emission = 0.0f * glm::vec4(4, 2, 3,0);
 //          scene.meshes.back().primitives[39].material.emission = 0.0f * glm::vec4(2, 1, 1.5,0);
-//          scene.meshes.back().primitives[8].material.diffuse_color.w = 0.0f;
-//          scene.meshes.back().primitives[8].material.glass.w = 1.46f;
+          scene.meshes.back().primitives[8].material.diffuse_color.w = 0.0f;
+          scene.meshes.back().primitives[8].material.glass.w = 1.46f;
       }
 
-    scene.LoadModel("models/fireplace_room.glb", true);
-    scene.meshes.back().primitives[1].material.diffuse_color.w = 0.0f;
-    scene.meshes.back().primitives[1].material.glass.w = 1.46f;
+//    scene.LoadModel("models/fireplace_room.glb", true);
+//    scene.meshes.back().primitives[1].material.diffuse_color.w = 0.0f;
+//    scene.meshes.back().primitives[1].material.glass.w = 1.46f;
 
     
 
@@ -168,8 +169,14 @@ int main(int argc, char** argv) {
     vk::CommandBuffer cmdBuffer = app.MakeGraphicsCommandBuffer();
 
     uint32_t tick = 0;
+    double ping = glfwGetTime();
     float lastFrameTime = static_cast<float>(glfwGetTime());
     while(!app.WindowShouldClose()) {
+        double pong = glfwGetTime();
+        if (tick % 500 == 0) {
+            logger::info("FPS: {}", 1.0 / (pong - ping));
+        }
+        ping = pong;
         glfwPollEvents();
         tick++;
         if (camera.getHasMoved()) {
